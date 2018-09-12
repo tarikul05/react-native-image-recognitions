@@ -9,7 +9,10 @@ export default class CameraExample extends React.Component {
   
     this.state = {
       photo: '',
+      newEntry: false,
       base64: '',
+      face_token: '',
+      confidence: false,
       api_key: '9CpiJ8ViRAtQSLnjUV99HQA_h2phfSbd',
       api_secret: '94jtPpbyAcEic9kNJn0KUP1RmeCSa5Tn'
     };
@@ -19,6 +22,8 @@ export default class CameraExample extends React.Component {
 
   _pickImage = async () => {
     console.log('Pick image')
+    this.setState({ face_token:'', confidence: '' });
+
     const camPermission = await Permissions.askAsync(Permissions.CAMERA_ROLL);
     console.log(camPermission)
     if(camPermission.status == 'granted'){
@@ -29,10 +34,8 @@ export default class CameraExample extends React.Component {
         base64: true,
       }).catch(error => console.log(camPermission, { error }));
 
-      // console.log(result);
-
       if (!result.cancelled) {
-        this.setState({ photo: result.uri, base64: result.base64 });
+        this.setState({ photo: result.uri, base64: result.base64, face_token:'', confidence: '' });
         this._detectImage()
       }
     }else{
@@ -43,46 +46,109 @@ export default class CameraExample extends React.Component {
 
   _detectImage = async () => {
     console.log('Detect image')
-    const uri = this.state.photo;
-    const uriParts = uri.split('.');
-    const fileType = uriParts[uriParts.length - 1];
+    let formData = new FormData();
+    formData.append('api_key', this.state.api_key)
+    formData.append('api_secret', this.state.api_secret)
+    formData.append('image_base64', this.state.base64)
 
-    // let formData = new FormData();
-    // formData.append('image_file', {
-    //   uri,
-    //   name: `photo.${fileType}`,
-    //   type: `image/${fileType}`,
-    // });
+      fetch('https://api-us.faceplusplus.com/facepp/v3/detect', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: formData,
+      }).then((response) => response.json())
+      .then((responseJson) => {
+         console.log('Faces ',responseJson.faces);
+         if(responseJson.faces.length > 0){
+           responseJson.faces.map((face, index)=>(
+             this.setState({ face_token: face.face_token })
+            ));
+         }
 
+      }).then((dta)=> {
+        console.log('face token form state',this.state.face_token)
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+ 
+  };
 
-    const reqUrl = '/detect?api_key='+this.state.api_key+'&api_secret='+this.state.api_secret
-                  // +'&=image_base64'+this.state.base64
+  _verifyImage = async () => {
+    console.log('verify image')
+    let formData = new FormData();
+    formData.append('api_key', this.state.api_key)
+    formData.append('api_secret', this.state.api_secret)
+    formData.append('faceset_token', 'caa66bbca6fec6d7ff1a62f2ffce5386')
+    formData.append('face_token', this.state.face_token)
 
+      fetch('https://api-us.faceplusplus.com/facepp/v3/search', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: formData,
+      }).then((response) => response.json())
+      .then((responseJson) => {
+         console.log('maindata: ',responseJson);
 
-  
-    Api.fetch(reqUrl, {
-      method: 'POST',
-      body: {
-        image_base64: this.state.base64
-      },
-      // headers: {
-      //   'Content-Type': 'multipart/form-data',
-      // },
-    }).then((data)=>{
-      console.log(data)
-    }).then(()=>{
-      // this.props.navigation.navigate('Wikilist')
-    }).catch((error)=>{
-      console.log("error:", error)
-      alert(error)
-    })
+         if(responseJson.results.length > 0){
+           responseJson.results.map((res, index)=>(
+             this.setState({ confidence: res.confidence })
+            ));
+         }
+
+      }).then((dta)=> {
+        console.log('face token form state',this.state.face_token)
+      })
+      .catch((error) => {
+        console.error(error);
+      });
  
   };
 
   _addNewImage = async () => {
-    console.log('Add New Image')
- 
+    this.setState({newEntry: true})
+    this._verifyImage()
   };
+
+  
+
+  checkMessage = () =>{
+    if(this.state.confidence > 75 ){
+      return (
+        <View>
+          <Text style={ { marginTop:50, fontSize:30, color:'green' }}>
+            Image match. You have identified
+          </Text>
+        </View>
+      );
+    }else if(this.state.confidence < 75 && this.state.confidence > 0){
+      return (
+        <View>
+          <Text style={ { marginTop:50, fontSize:30, color:'red' }}>
+            Sorry, we didn't recognize you 
+          </Text> 
+
+          <Text style={ { marginTop:50, fontSize:30,  }}
+           onPress={this._addNewImage}
+          >
+            Add this image
+          </Text>
+        </View>
+      )
+      
+    }else{
+      return(
+        <View>
+
+        </View>
+      )
+    }
+  }
 
   render() {
     return (
@@ -107,11 +173,24 @@ export default class CameraExample extends React.Component {
               Upload Image
             </Text>
 
-            <Text style={ { marginTop:80, fontSize:30 }}
+            {/* <Text style={ { marginTop:80, fontSize:30 }}
             onPress={this._searchImage}
             >
               Verify image
-            </Text>
+            </Text> */}
+
+            { this.state.face_token ?
+              <Text style={ { marginTop:80, fontSize:30 }}
+              onPress={this._verifyImage}
+              >
+                Verify image
+              </Text>
+              : '' }
+
+             { this.checkMessage() }
+
+
+
           </View>
       </View>
     )
