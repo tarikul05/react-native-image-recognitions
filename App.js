@@ -1,7 +1,7 @@
 import React from 'react';
 import { Text, View, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Camera, Permissions, ImagePicker } from 'expo';
-// import Spinner from 'react-native-loading-spinner-overlay';
+import Spinner from 'react-native-loading-spinner-overlay';
 import Api from './Api'
 
 export default class CameraExample extends React.Component {
@@ -16,7 +16,7 @@ export default class CameraExample extends React.Component {
       confidence: false,
       api_key: '9CpiJ8ViRAtQSLnjUV99HQA_h2phfSbd',
       api_secret: '94jtPpbyAcEic9kNJn0KUP1RmeCSa5Tn',
-      visible:true
+      visible:false
     };
   };
 
@@ -37,7 +37,7 @@ export default class CameraExample extends React.Component {
       }).catch(error => console.log(camPermission, { error }));
 
       if (!result.cancelled) {
-        this.setState({ photo: result.uri, base64: result.base64, face_token:'', confidence: '' });
+        this.setState({ photo: result.uri, base64: result.base64, face_token:'', confidence: '', visible:true });
         this._detectImage()
       }
     }else{
@@ -67,6 +67,7 @@ export default class CameraExample extends React.Component {
            responseJson.faces.map((face, index)=>(
              this.setState({ face_token: face.face_token })
             ));
+            this._verifyImage()
          }else{
            alert('Unable to detect any face')
            this._pickImage()
@@ -102,7 +103,7 @@ export default class CameraExample extends React.Component {
 
          if(responseJson.results.length > 0){
            responseJson.results.map((res, index)=>(
-             this.setState({ confidence: res.confidence })
+             this.setState({ confidence: res.confidence, visible:false })
             ));
          }
 
@@ -186,7 +187,7 @@ export default class CameraExample extends React.Component {
   render() {
     return (
       <View style={{alignItems: 'center', flex:1, flexDirection: 'column', alignItems:"center", alignContent:"center", justifyContent:"center"}}>
-        {/* <Spinner visible={this.state.visible} textContent={"Loading..."} textStyle={{color: '#FFF'}} /> */}
+        <Spinner visible={this.state.visible} textContent={"Searching..."} textStyle={{color: '#FFF'}} />
           {
             this.state.photo ? 
               <Image 
@@ -195,7 +196,6 @@ export default class CameraExample extends React.Component {
               />
             :
               <Image 
-              // source = {{ uri: './../assets/profile-icon.png' }} 
               source = { require('./assets/splash.jpg') }
               style={{width: 300, height: 300}} 
               />
@@ -214,11 +214,12 @@ export default class CameraExample extends React.Component {
             </Text> */}
 
             { this.state.face_token ?
-              <Text style={ { marginTop:80, fontSize:30 }}
-              onPress={this._verifyImage}
-              >
-                Verify image
-              </Text>
+              // <Text style={ { marginTop:80, fontSize:30 }}
+              // onPress={this._verifyImage}
+              // >
+              //   Verify image
+              // </Text>
+              ''
               : '' }
 
              { this.checkMessage() }
