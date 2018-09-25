@@ -24,7 +24,7 @@ export default class CameraExample extends React.Component {
 
   _pickImage = async () => {
     console.log('Pick image')
-    this.setState({ face_token:'', confidence: '' });
+    this.setState({ face_token:'', confidence: '', photo:'' });
 
     const camPermission = await Permissions.askAsync(Permissions.CAMERA);
     console.log(camPermission)
@@ -69,7 +69,7 @@ export default class CameraExample extends React.Component {
             ));
             this._verifyImage()
          }else{
-           alert('Unable to detect any face')
+           //alert('Unable to detect any face')
            this._pickImage()
          }
 
