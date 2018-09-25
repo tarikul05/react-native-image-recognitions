@@ -1,6 +1,7 @@
 import React from 'react';
 import { Text, View, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Camera, Permissions, ImagePicker } from 'expo';
+// import Spinner from 'react-native-loading-spinner-overlay';
 import Api from './Api'
 
 export default class CameraExample extends React.Component {
@@ -14,7 +15,8 @@ export default class CameraExample extends React.Component {
       face_token: '',
       confidence: false,
       api_key: '9CpiJ8ViRAtQSLnjUV99HQA_h2phfSbd',
-      api_secret: '94jtPpbyAcEic9kNJn0KUP1RmeCSa5Tn'
+      api_secret: '94jtPpbyAcEic9kNJn0KUP1RmeCSa5Tn',
+      visible:true
     };
   };
 
@@ -24,7 +26,7 @@ export default class CameraExample extends React.Component {
     console.log('Pick image')
     this.setState({ face_token:'', confidence: '' });
 
-    const camPermission = await Permissions.askAsync(Permissions.CAMERA_ROLL);
+    const camPermission = await Permissions.askAsync(Permissions.CAMERA);
     console.log(camPermission)
     if(camPermission.status == 'granted'){
       let result = await ImagePicker.launchCameraAsync({
@@ -65,6 +67,9 @@ export default class CameraExample extends React.Component {
            responseJson.faces.map((face, index)=>(
              this.setState({ face_token: face.face_token })
             ));
+         }else{
+           alert('Unable to detect any face')
+           this._pickImage()
          }
 
       }).then((dta)=> {
@@ -112,7 +117,35 @@ export default class CameraExample extends React.Component {
 
   _addNewImage = async () => {
     this.setState({newEntry: true})
-    this._verifyImage()
+
+    let formData = new FormData();
+    formData.append('api_key', this.state.api_key)
+    formData.append('api_secret', this.state.api_secret)
+    formData.append('faceset_token', 'caa66bbca6fec6d7ff1a62f2ffce5386')
+    formData.append('face_tokens', this.state.face_token)
+    
+    fetch('https://api-us.faceplusplus.com/facepp/v3/faceset/addface', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: formData,
+      }).then((response) => response.json())
+      .then((responseJson) => {
+         console.log('added json : ',responseJson);
+        
+         if(responseJson.failure_detail.length == 0){
+          this.setState({ face_token: false })
+           alert("Face added successfully")
+         }
+
+      }).then((dta)=> {
+        console.log('face token form state',this.state.face_token)
+      })
+      .catch((error) => {
+        console.error(error);
+      });
   };
 
   
@@ -153,6 +186,7 @@ export default class CameraExample extends React.Component {
   render() {
     return (
       <View style={{alignItems: 'center', flex:1, flexDirection: 'column', alignItems:"center", alignContent:"center", justifyContent:"center"}}>
+        {/* <Spinner visible={this.state.visible} textContent={"Loading..."} textStyle={{color: '#FFF'}} /> */}
           {
             this.state.photo ? 
               <Image 
@@ -162,7 +196,7 @@ export default class CameraExample extends React.Component {
             :
               <Image 
               // source = {{ uri: './../assets/profile-icon.png' }} 
-              source = { require('./assets/icon.png') }
+              source = { require('./assets/splash.jpg') }
               style={{width: 300, height: 300}} 
               />
           }
